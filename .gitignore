@@ -1,0 +1,13 @@
+# Node
+node_modules/
+.env
+
+# Flutter
+.dart_tool/
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+
+# Common
+.DS_Store
