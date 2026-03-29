@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../service/api_service.dart';
+import '../screen/home_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart'; // ✅ ADD
 
 class SignupScreen extends StatefulWidget {
   @override
@@ -58,25 +60,41 @@ class _SignupScreenState extends State<SignupScreen> {
                       width: double.infinity,
                       child: ElevatedButton(
                         onPressed: () async {
-                          if (_formKey.currentState!.validate()) {
-                            print("🚀 Signup button pressed");
-                            String name = nameController.text;
-                            String email = emailController.text;
-                            String password = passwordController.text;
-                            print("📝 Input: name=$name, email=$email, password=$password");
+                          String name = nameController.text.trim();
+                          String email = emailController.text.trim();
+                          String password = passwordController.text.trim();
 
-                            final response = await ApiService.signup(name, email, password);
-                            print("✅ Signup response: $response");
+                          if (name.isEmpty || email.isEmpty || password.isEmpty) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text("All fields are required")),
+                            );
+                            return;
+                          }
 
-                            if (response['success'] == true) {
-                              print("🚀 Signup successful, navigating to HomeScreen");
-                              Navigator.pushReplacementNamed(context, '/home');
-                            } else {
-                              print("❌ Signup failed");
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text("Signup failed: ${response['message'] ?? 'Unknown error'}")),
-                              );
-                            }
+                          final response = await ApiService.signup(name, email, password);
+
+                          if (!mounted) return;
+
+                          if (response['success'] == true) {
+
+                            // ✅ SAVE LOGIN
+                            final prefs = await SharedPreferences.getInstance();
+                            await prefs.setBool("isLogin", true);
+
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text("Signup Successful")),
+                            );
+
+                            await Future.delayed(Duration(milliseconds: 500));
+
+                            Navigator.pushReplacement(
+                              context,
+                              MaterialPageRoute(builder: (_) => HomeScreen()),
+                            );
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text("Signup failed: ${response['message'] ?? 'Unknown error'}")),
+                            );
                           }
                         },
                         style: ElevatedButton.styleFrom(

@@ -62,7 +62,10 @@ exports.getAllTournaments = async (req, res) => {
   try {
     const tournaments = await Tournament.find().sort({ createdAt: -1 });
     console.log(`✅ ${tournaments.length} tournaments fetched`);
-    res.status(200).json(tournaments);
+    res.status(200).json({
+      success: true,
+      data: tournaments
+    });
   } catch (error) {
     console.error("❌ Get All Tournaments Error:", error);
     res.status(500).json({

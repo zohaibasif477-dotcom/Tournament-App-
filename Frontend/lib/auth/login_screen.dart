@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart'; // ✅ ADD
+import '../screen/home_screen.dart'; // ✅ ADD
 
 class LoginScreen extends StatelessWidget {
   final _formKey = GlobalKey<FormState>();
@@ -48,11 +50,19 @@ class LoginScreen extends StatelessWidget {
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
-                        onPressed: () {
+                        onPressed: () async {
                           if (_formKey.currentState!.validate()) {
-                            // ✅ یہاں پر login logic add کریں
+
+                            final prefs = await SharedPreferences.getInstance();
+                            await prefs.setBool("isLogin", true);
+
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(content: Text('Logging In...')),
+                            );
+
+                            Navigator.pushReplacement(
+                              context,
+                              MaterialPageRoute(builder: (_) => HomeScreen()),
                             );
                           }
                         },
