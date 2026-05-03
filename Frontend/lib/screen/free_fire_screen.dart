@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'tournament_detail_screen.dart';
+import 'seat_selection_screen.dart';
+import '../utils/tournament_images.dart';
 
 void main() {
   runApp(MaterialApp(
@@ -22,6 +25,18 @@ class _FreeFireTournamentsScreenState
     extends State<FreeFireTournamentsScreen> {
   late String selectedMain;
   late String selectedSub;
+
+  double _getImageHeight(BuildContext context) {
+    double width = MediaQuery.of(context).size.width;
+
+    if (width < 600) {
+      return 180; // Mobile
+    } else if (width < 1100) {
+      return 230; // Tablet
+   } else {
+      return 300; // Laptop / Desktop
+   }
+  }  
 
   List<Map<String, dynamic>> tournaments = [
     {
@@ -78,9 +93,9 @@ class _FreeFireTournamentsScreenState
     return tournaments.where((t) {
       if (selectedMain.isEmpty) return true;
       if (selectedSub.isEmpty) {
-        return t["type"] == selectedMain;
+        return t["type"].toString().toLowerCase() == selectedMain.toLowerCase();
       }
-      return t["subType"] == selectedSub;
+      return t["subType"].toString().toLowerCase() == selectedSub.toLowerCase();
     }).toList();
   }
 
@@ -109,18 +124,16 @@ class _FreeFireTournamentsScreenState
         padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         margin: EdgeInsets.only(right: 10),
         decoration: BoxDecoration(
-          gradient: selected
-              ? LinearGradient(
-                  colors: [Color(0xFF7C3AED), Color(0xFF2E2E3A)])
-              : null,
-          color: selected ? null : Color(0xFF2E2E3A),
+          color: selected ?
+        Color(0xFF00FFE5) : Colors.white,
           borderRadius: BorderRadius.circular(20),
         ),
         child: Text(text,
-            style: TextStyle(
-              color: selected ? Colors.white : Color(0xFF9CA3AF),
-              fontWeight: FontWeight.w500,
-            )),
+          style: TextStyle(
+            color: selected ? Colors.black : Colors.black,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
       ),
     );
   }
@@ -138,11 +151,13 @@ class _FreeFireTournamentsScreenState
         padding: EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         margin: EdgeInsets.only(right: 10),
         decoration: BoxDecoration(
-          color: selected ? Color(0xFF00FFE5) : Color(0xFF121827),
+          color: selected ? Color(0xFF00FFE5) : Colors.white,
           borderRadius: BorderRadius.circular(15),
+          border: Border.all(color: Colors.black12),
         ),
         child: Text(text,
-            style: TextStyle(color: Colors.white)),
+            style: TextStyle(color: Colors.black),
+          ),
       ),
     );
   }
@@ -150,21 +165,25 @@ class _FreeFireTournamentsScreenState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Color(0xFF7C3AED),
+        centerTitle: true,
+        title: Text(
+          "Free Fire Tournaments",
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),    
+
       body: Container(
-        color: Color(0xFF0A0F24),
-        child: SafeArea(
-          child: Padding(
+        color: Colors.white,
+       child: SafeArea(
+         child: Padding(
             padding: EdgeInsets.all(16),
             child: Column(
-              children: [
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text("Free Fire Tournaments",
-                      style: TextStyle(
-                          color: Color(0xFFFFFFFF),
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold)),
-                ),
+              children: [  
 
                 SizedBox(height: 15),
 
@@ -172,20 +191,18 @@ class _FreeFireTournamentsScreenState
                   scrollDirection: Axis.horizontal,
                   child: Row(
                     children: [
-                      buildFilterButton("Solo", selectedMain == "Solo"),
-                      buildFilterButton(
-                          "Solo Perkill", selectedMain == "Solo Perkill"),
-                      buildFilterButton(
-                          "Clash Squad", selectedMain == "Clash Squad"),
-                      buildFilterButton(
-                          "Bermuda", selectedMain == "Bermuda"),
+                      buildFilterButton("SOLO", selectedMain == "SOLO"),
+                      buildFilterButton("SOLO PERKILL", selectedMain == "SOLO PERKILL"),
+                      buildFilterButton("CLASH SQUAD", selectedMain == "CLASH SQUAD"),
+                      buildFilterButton("BERMUDA", selectedMain == "BERMUDA"),
                     ],
                   ),
+                  
                 ),
 
                 SizedBox(height: 10),
 
-                if (selectedMain == "Clash Squad")
+                if (selectedMain == "CLASH SQUAD")
                   Row(
                     children: [
                       buildSubFilter("1v1"),
@@ -194,7 +211,7 @@ class _FreeFireTournamentsScreenState
                     ],
                   ),
 
-                if (selectedMain == "Bermuda")
+                if (selectedMain == "BERMUDA")
                   Row(
                     children: [
                       buildSubFilter("DUO"),
@@ -228,14 +245,19 @@ class _FreeFireTournamentsScreenState
                           children: [
                             ClipRRect(
                               borderRadius: BorderRadius.vertical(
-                                  top: Radius.circular(20)),
-                              child: Image.network(
-                                t["image"],
-                                height: 150,
-                                width: double.infinity,
-                                fit: BoxFit.cover,
+                                top: Radius.circular(20)),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                                   child: SizedBox(
+                                    width: double.infinity,
+                                   height: _getImageHeight(context),
+                                   child: Image.asset(
+                                     TournamentImages.getImage(t["type"], t["subType"]),
+                                      fit: BoxFit.cover,
+                                    ),
+                                  ),
+                                ),                               
                               ),
-                            ),
 
                             Padding(
                               padding: EdgeInsets.all(16),
@@ -315,10 +337,23 @@ class _FreeFireTournamentsScreenState
                                   Column(
                                     children: [
                                       ElevatedButton(
-                                        onPressed: () {},
+                                        onPressed: () {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (_) => TournamentDetailScreen(
+                                                title: t["name"],
+                                                description: "This is a dummy tournament description",
+                                                players: t["players"],
+                                                fee: int.parse(t["entryFee"]),
+                                                time: t["date"],
+                                              ),                                              
+                                            ),
+                                          );
+                                        },                                        
                                         style: ElevatedButton.styleFrom(
                                           backgroundColor:
-                                              Color(0xFF3B82F6),
+                                            Color(0xFF3B82F6),
                                           minimumSize:
                                               Size(double.infinity, 45),
                                           shape: RoundedRectangleBorder(
@@ -352,20 +387,30 @@ class _FreeFireTournamentsScreenState
                                           ],
                                         ),
                                         child: ElevatedButton(
-                                          onPressed: () {},
+                                          onPressed: () async {
+                                            final selectedSeat = await Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (_) => SeatSelectionScreen(
+                                                  totalSeats: t["players"],
+                                                  fee: int.parse(t["entryFee"]),
+                                                ),
+                                              ),
+                                            );
+
+                                            if (selectedSeat != null) {
+                                              print("Selected Seat: $selectedSeat");
+                                            }
+                                          },
                                           style: ElevatedButton.styleFrom(
-                                            backgroundColor:
-                                                Colors.transparent,
-                                            shadowColor:
-                                                Colors.transparent,
+                                            backgroundColor: Colors.transparent,
+                                            shadowColor: Colors.transparent,
                                             shape: RoundedRectangleBorder(
-                                                borderRadius:
-                                                    BorderRadius.circular(
-                                                        18)),
+                                              borderRadius: BorderRadius.circular(18),
+                                            ),
                                           ),
-                                          child:
-                                              Text("Join Tournament"),
-                                        ),
+                                          child: const Text("Join Tournament"),
+                                        ),                                        
                                       ),
                                     ],
                                   )

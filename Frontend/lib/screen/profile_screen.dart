@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:my_app/screen/deposit_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   final String userId;
 
   ProfileScreen({required this.userId});
-
   @override
   _ProfileScreenState createState() => _ProfileScreenState();
 }
@@ -173,11 +173,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
             SizedBox(height: 20),
 
             // ✅ OPTIONS WITH COLORS
-            optionRow("My Profile", Icons.person, Color(0xFFFF6B81), () {
-              Navigator.push(context, MaterialPageRoute(builder: (_) => DummyPage("My Profile")));
+            optionRow("My Profile", Icons.person, const Color(0xFFFF6B81), () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => DummyPage("My Profile"),
+                ),
+              );
             }),
-            optionRow("My Wallet", Icons.account_balance_wallet, Color(0xFF4CAF50), () {
-              Navigator.push(context, MaterialPageRoute(builder: (_) => DummyPage("My Wallet")));
+            optionRow("My Wallet", Icons.account_balance_wallet, const Color(0xFF4CAF50), () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => DepositScreen(userId: widget.userId),
+                ),
+              );
             }),
             optionRow("Refer & Earn", Icons.card_giftcard, Color(0xFF2196F3), () {
               Navigator.push(context, MaterialPageRoute(builder: (_) => DummyPage("Refer & Earn")));

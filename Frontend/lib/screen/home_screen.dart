@@ -3,6 +3,7 @@ import 'package:my_app/screen/free_fire_screen.dart';
 import 'profile_screen.dart';
 import 'dart:async';
 import '../service/api_service.dart';
+import 'wallet_screen.dart';
 
 // ================= HOME SCREEN =================
 
@@ -21,10 +22,14 @@ class _HomeScreenState extends State<HomeScreen>
   PageController _pageController = PageController();
   int _currentPage = 0;
 
+  // ✅ FIX 1: MISSING VARIABLES ADDED
+  String userId = "1";
+  int points = 0;
+  Timer? _bannerTimer;
+
   List<String> bannerImages = [
-    "assets/banner1.jpg",
-    "assets/banner2.jpg",
-    "assets/banner3.jpg"
+    "assets/images/banners/banner(1).png",
+    "assets/images/banners/banner(2).png",
   ];
 
   List<String> tournamentModes = [
@@ -35,10 +40,10 @@ class _HomeScreenState extends State<HomeScreen>
   ];
 
   List<String> tournamentImages = [
-    "assets/solo_survival.jpg",
-    "assets/solo_perkill.jpg",
-    "assets/clash_squad.jpg",
-    "assets/bermuda.jpg"
+    "assets/images/options/solo_survival.png",
+    "assets/images/options/solo_perkill.png",
+    "assets/images/options/clash_squad.png",
+    "assets/images/options/bermuda.png",
   ];
 
   @override
@@ -46,13 +51,14 @@ class _HomeScreenState extends State<HomeScreen>
     super.initState();
     _tabController = TabController(length: 4, vsync: this);
 
-    // Auto banner slider
-    Timer.periodic(Duration(seconds: 3), (timer) {
+    // ✅ FIX 2: TIMER SAFE HANDLING
+    _bannerTimer = Timer.periodic(Duration(seconds: 3), (timer) {
       if (_currentPage < bannerImages.length - 1) {
         _currentPage++;
       } else {
         _currentPage = 0;
       }
+
       _pageController.animateToPage(
         _currentPage,
         duration: Duration(milliseconds: 500),
@@ -65,6 +71,10 @@ class _HomeScreenState extends State<HomeScreen>
   void dispose() {
     _tabController?.dispose();
     _pageController.dispose();
+
+    // ✅ FIX 3: TIMER CANCEL ADDED (MEMORY LEAK FIX)
+    _bannerTimer?.cancel();
+
     super.dispose();
   }
 
@@ -76,7 +86,6 @@ class _HomeScreenState extends State<HomeScreen>
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
 
-          // LEFT SIDE: Logo + App Name
           Row(
             children: [
               CircleAvatar(
@@ -91,39 +100,48 @@ class _HomeScreenState extends State<HomeScreen>
                   Text("Welcome back",
                       style: TextStyle(color: Colors.white70, fontSize: 12)),
                   Text("Tournament Hub",
-                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                      style: TextStyle(
+                          color: Colors.white, fontWeight: FontWeight.bold)),
                 ],
               ),
             ],
           ),
 
-          // RIGHT SIDE: Notification Bell + Coins + Profile
           Row(
             children: [
               Icon(Icons.notifications_none, color: Colors.white),
               SizedBox(width: 16),
+
               GestureDetector(
                 onTap: () {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                        builder: (context) => WalletPage(coins: coins)),
+                      builder: (context) => WalletScreen(
+                        userId: userId,
+                        balance: points,
+                      ),
+                    ),
                   );
                 },
                 child: Row(
                   children: [
                     Icon(Icons.monetization_on, color: Colors.yellow),
-                    Text("$coins", style: TextStyle(color: Colors.white))
+                    Text("$coins",
+                        style: TextStyle(color: Colors.white)),
                   ],
                 ),
               ),
+
               SizedBox(width: 16),
+
               GestureDetector(
                 onTap: () {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => ProfileScreen(userId: "1"), // existing ProfileScreen use ho raha
+                      builder: (_) =>
+                          ProfileScreen(userId: userId),
                     ),
                   );
                 },
@@ -143,8 +161,13 @@ class _HomeScreenState extends State<HomeScreen>
     return Stack(
       children: [
         Container(
-          height: 150,
+          height: MediaQuery.of(context).size.width > 800
+          ? 300
+          : MediaQuery.of(context).size.height * 0.22,      
           margin: EdgeInsets.symmetric(horizontal: 16),
+          width: MediaQuery.of(context).size.width > 600
+              ? 600
+              : double.infinity,          
           child: PageView.builder(
             controller: _pageController,
             itemCount: bannerImages.length,
@@ -153,14 +176,13 @@ class _HomeScreenState extends State<HomeScreen>
                 borderRadius: BorderRadius.circular(12),
                 child: Image.asset(
                   bannerImages[i],
-                  fit: BoxFit.cover,
+                  fit: BoxFit.contain,
                 ),
               );
             },
           ),
         ),
 
-        // LEFT ARROW
         Positioned(
           left: 20,
           top: 60,
@@ -174,7 +196,6 @@ class _HomeScreenState extends State<HomeScreen>
           ),
         ),
 
-        // RIGHT ARROW
         Positioned(
           right: 20,
           top: 60,
@@ -191,17 +212,15 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  // ================= UPDATED CARD =================
   Widget buildCard(int index) {
     return GestureDetector(
       onTap: () {
-        // Card click -> FreeFireScreen with filter
         String selectedMode = tournamentModes[index];
         Navigator.push(
           context,
           MaterialPageRoute(
             builder: (_) => FreeFireTournamentsScreen(
-              initialFilter: selectedMode, // New param
+              initialFilter: selectedMode,
             ),
           ),
         );
@@ -223,223 +242,121 @@ class _HomeScreenState extends State<HomeScreen>
             decoration: BoxDecoration(
               color: Color(0x80000000),
               borderRadius: BorderRadius.only(
-                  bottomLeft: Radius.circular(12),
-                  bottomRight: Radius.circular(12)),
+                bottomLeft: Radius.circular(12),
+                bottomRight: Radius.circular(12),
+              ),
             ),
             child: Text(
               tournamentModes[index],
               textAlign: TextAlign.center,
               style: TextStyle(
-                  color: Colors.white, fontWeight: FontWeight.bold),
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold),
             ),
           ),
         ),
       ),
-    );
-  }
-
-  Widget buildLiveSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text("Live Tournament",
-            style: TextStyle(
-                color: Colors.white,
-                fontSize: 22,
-                fontWeight: FontWeight.bold)),
-        SizedBox(height: 12),
-
-        // LIVE BOX
-        Container(
-          padding: EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: Color(0xFF660000),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text("Live",
-                  style: TextStyle(
-                      color: Colors.white, fontWeight: FontWeight.bold)),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                    backgroundColor: Color(0xFF800000)),
-                onPressed: () {},
-                child: Text("Watch"),
-              )
-            ],
-          ),
-        ),
-
-        SizedBox(height: 10),
-
-        // REWARD BOX
-        Container(
-          padding: EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: Color(0xFF556B2F),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text("Claim your Daily Reward",
-                      style: TextStyle(
-                          color: Colors.white, fontWeight: FontWeight.bold)),
-                  Text("Collect bonus reward",
-                      style: TextStyle(color: Colors.white70, fontSize: 12)),
-                ],
-              ),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                    backgroundColor: Color(0xFF80FF00)),
-                onPressed: () {},
-                child: Text("Claim"),
-              )
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget buildUpcomingTournament() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text("Upcoming Tournament",
-            style: TextStyle(
-                color: Colors.white,
-                fontSize: 22,
-                fontWeight: FontWeight.bold)),
-        SizedBox(height: 12),
-
-        Container(
-          padding: EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Color(0xFF2C003E),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text("Spring Championship",
-                  style: TextStyle(
-                      color: Colors.white, fontWeight: FontWeight.bold)),
-              SizedBox(height: 6),
-              Text("Prize: \$1000",
-                  style: TextStyle(color: Colors.white70)),
-              SizedBox(height: 10),
-              Align(
-                alignment: Alignment.centerRight,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                      backgroundColor: Color(0xFF4B0082)),
-                  onPressed: () {},
-                  child: Text("Register Now"),
-                ),
-              )
-            ],
-          ),
-        ),
-      ],
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFF0D1117),
+            backgroundColor: Color(0xFF0D1117),
 
       body: SafeArea(
-        child: SingleChildScrollView(
-          child: Column(
-            children: [
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return SingleChildScrollView(
+              child: Column(
+                children: [
+                  SizedBox(height: 10),
+                  buildTopBar(),
+                  buildBanner(),
 
-              SizedBox(height: 10),
+                  SizedBox(height: 16),
 
-              // 🔥 TOP BAR
-              buildTopBar(),
-
-              // 🔥 TOP BANNER
-              buildBanner(),
-
-              SizedBox(height: 16),
-
-              // GRID
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Column(
-                  children: [
-                    Row(
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Column(
                       children: [
-                        Expanded(child: buildCard(0)),
-                        SizedBox(width: 10),
-                        Expanded(child: buildCard(1)),
-                      ],
+                        GridView.builder(
+                          shrinkWrap: true,
+                            physics: NeverScrollableScrollPhysics(),
+                            itemCount: 4,
+                            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: MediaQuery.of(context).size.width > 1000
+                                  ? 4
+                                  : MediaQuery.of(context).size.width > 600
+                                      ? 2
+                                      : 2,
+                              crossAxisSpacing: 10,
+                              mainAxisSpacing: 10,
+                              childAspectRatio: 1.2,
+                            ),
+                            itemBuilder: (context, index) {
+                              return buildCard(index);
+                      },
                     ),
+
                     SizedBox(height: 10),
-                    Row(
-                      children: [
-                        Expanded(child: buildCard(2)),
-                        SizedBox(width: 10),
-                        Expanded(child: buildCard(3)),
-                      ],
-                    ),
-                  ],
+
+                    
+                    ],
+                  ),
                 ),
-              ),
 
-              SizedBox(height: 20),
+                SizedBox(height: 20),
+              ],
+            ),
+          );
+        },
+      ),
+    ),
+    
+    bottomNavigationBar: BottomNavigationBar(
+  backgroundColor: Color(0xFF111827),
+  selectedItemColor: Color(0xFF22C55E),
+  unselectedItemColor: Colors.white70,
+  currentIndex: _currentBottomIndex,
 
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: buildLiveSection(),
-              ),
-
-              SizedBox(height: 20),
-
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: buildUpcomingTournament(),
-              ),
-
-              SizedBox(height: 100),
-            ],
+  onTap: (index) {
+    if (index == 3) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => WalletScreen(
+            userId: userId,
+            balance: points,
           ),
         ),
-      ),
+      );
+      return;
+    }
 
-      bottomNavigationBar: BottomNavigationBar(
-        backgroundColor: Color(0xFF111827),
-        selectedItemColor: Color(0xFF22C55E),
-        unselectedItemColor: Colors.white70,
-        currentIndex: _currentBottomIndex,
-        onTap: (index) {
-          setState(() {
-            _currentBottomIndex = index;
-          });
+    if (index == 4) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ProfileScreen(userId: userId),
+        ),
+      );
+      return;
+    }
 
-          if (index == 4) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                  builder: (_) => ProfileScreen(userId: "1")),
-            );
-          }
-        },
-        items: [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
-          BottomNavigationBarItem(icon: Icon(Icons.public), label: "Ranking"),
-          BottomNavigationBarItem(icon: Icon(Icons.group), label: "Team"),
-          BottomNavigationBarItem(icon: Icon(Icons.account_balance_wallet), label: "Wallet"),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: "Profile"),
-        ],
-      ),
+    setState(() {
+      _currentBottomIndex = index;
+    });
+  },
+
+  items: [
+    BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
+    BottomNavigationBarItem(icon: Icon(Icons.public), label: "Ranking"),
+    BottomNavigationBarItem(icon: Icon(Icons.group), label: "Team"),
+    BottomNavigationBarItem(icon: Icon(Icons.account_balance_wallet), label: "Wallet"),
+    BottomNavigationBarItem(icon: Icon(Icons.person), label: "Profile"),
+  ],
+),
     );
   }
 }
@@ -447,14 +364,14 @@ class _HomeScreenState extends State<HomeScreen>
 // ================= EXTRA PAGES =================
 
 class WalletPage extends StatelessWidget {
-  final int coins;
-  WalletPage({required this.coins});
+final int coins;
+WalletPage({required this.coins});
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text("Wallet")),
-      body: Center(child: Text("You have $coins coins")),
-    );
-  }
+@override
+Widget build(BuildContext context) {
+return Scaffold(
+appBar: AppBar(title: Text("Wallet")),
+body: Center(child: Text("You have $coins coins")),
+);
+}
 }
